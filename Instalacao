@@ -1,0 +1,98 @@
+
+Cenário
+Sistema utilizado: Debian 8.8
+ISO: debian-8.8.0-amd64-netinst.iso
+Hostname: srvZabbix
+IP: 192.168.0.240
+
+Obtendo os pacotes necessários
+# mkdir /opt/scripts && cd /opt/scripts && wget https://repo.zabbix.com/zabbix/4.0/debian/pool/main/z/zabbix-release/zabbix-release_4.0-2+jessie_all.deb && dpkg -i zabbix-release_4.0-2+jessie_all.deb && apt update && apt install vim zabbix-server-mysql zabbix-frontend-php zabbix-agent curl python-pip snmp figlet -y 
+
+Identificando servidor
+Identificando servidor com o comando figlet "srvZabbix", agora cole o resultado do comando no arquivo abaixo.
+
+# vim /etc/motd 
+
+Configurando banco de dados do Zabbix
+# mysql -u root -p
+password
+mysql> create database zabbix character set utf8 collate utf8_bin;
+mysql> grant all privileges on zabbix.* to zabbix@localhost identified by 'SENHA DO MYSQL';
+mysql> quit;
+
+Importando o schema
+# zcat /usr/share/doc/zabbix-server-mysql*/create.sql.gz | mysql -uzabbix -p zabbix
+
+Configure o banco de dados para o servidor Zabbix, edite o arquivo /etc/zabbix/zabbix_server.conf e descomente a linha 124 colocando a senha do banco de dados MYSQL
+
+# vim /etc/zabbix/zabbix_server.conf
+DBPassword=SENHA DO MYSQL
+
+Configure o PHP para o frontend do Zabbix, Edite o arquivo /etc/zabbix/apache.conf, remova o comentário da linha 20 e defina o fuso horário.
+
+# vim /etc/zabbix/apache.conf
+php_value date.timezone America/Sao_Paulo
+
+Configurando o agente do Zabbix, edite o arquivo vim /etc/zabbix/zabbix_agentd.conf, alterando a linha 150 para Hostname=srvZabbix
+
+# vim /etc/zabbix/zabbix_agentd.conf
+
+Inicie os processos do servidor e do agente do Zabbix e inicie na inicialização do sistema:
+
+# systemctl restart zabbix-server zabbix-agent apache2
+# systemctl enable zabbix-server zabbix-agent apache2
+
+Agora seu servidor Zabbix está funcionando!
+
+http://192.168.0.240/zabbix
+
+Após a instalação feita através do link acima o login e senha padrão do Zabbix: Admin / zabbix 
+
+Obtendo os pacotes necessários e instalando o Grafana 5.3.4
+Adicione a seguinte linha ao seu arquivo /etc/apt/sources.list.
+
+# vim /etc/apt/sources.list
+deb https://packagecloud.io/grafana/stable/debian/ jessie main
+
+Em seguida, adicione a chave Package Cloud. Isso permite que você instale pacotes assinados.
+
+# curl https://packagecloud.io/gpg.key | apt-key add -
+# apt-get install -y apt-transport-https && apt-get update && apt-get install grafana
+
+Inicie o Grafana executando:
+
+# service grafana-server start
+
+Para configurar o servidor Grafana para iniciar no momento da inicialização:
+
+# systemctl enable grafana-server.service
+
+Plugins:
+
+# grafana-cli plugins install alexanderzobnin-zabbix-app
+# grafana-cli plugins install grafana-clock-panel
+
+Iniciando o Grafana
+
+# service grafana-server restart
+
+Acessando o grafana e configurando, login e senha padrão admin / admin
+
+http://192.168.0.240:3000
+
+Siga os passos abaixo:
+
+Installed Apps
+Enable now
+Enable
+Home Dashboard, Add datasource
+
+Configurando banco de dados, o campo URL é preenchido com a URL da API do Zabbix
+
+Name: Zabbix4LTS (*não recomendo colocar espaço)
+Type: Zabbix
+Url: http://192.168.0.240/zabbix/api_jsonrpc.php
+Access: Server Default
+Username: Admin
+Password: zabbix 
+
